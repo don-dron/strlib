@@ -1,6 +1,6 @@
 #include <hash_map.h>
 
-void hash_map_print(struct hash_map *map, void (*print_node)(struct hash_map_node *node))
+int hash_map_print(struct hash_map *map, void (*print_node)(struct hash_map_node *node))
 {
     for (int i = 0; i < 16; i++)
     {
