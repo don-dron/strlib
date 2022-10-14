@@ -319,6 +319,7 @@ static struct bp_tree_leaf_node *bp_tree_init_leaf(struct bp_tree *tree)
     node->core.parent = NULL;
     node->core.leaf = 1;
     node->core.size = 0;
+    node->index = 0;
     node->core.left = NULL;
     node->core.right = NULL;
     node->core.parent = NULL;

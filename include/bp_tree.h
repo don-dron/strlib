@@ -43,6 +43,7 @@ struct bp_tree_non_leaf_node
 struct bp_tree_leaf_node
 {
     struct bp_tree_struct_node core;
+    int index;
 };
 
 struct bp_tree_batch
@@ -143,3 +144,7 @@ void bp_tree_print(struct bp_tree *tree, void (*print_node)(struct bp_tree_node 
  * Free allocated memory. Before delete all items.
  */
 int bp_tree_free(struct bp_tree *tree, void (*free_callback)(struct bp_tree_node *));
+
+#define bp_tree_for_each(___tree, ___node, ___type)                                                                                                   \
+    for (struct bp_tree_leaf_node *___leaf = bp_tree_min_leaf((___tree)); ___leaf != NULL; ___leaf = (struct bp_tree_leaf_node *)___leaf->core.right) \
+        for (___type *___node = (___type *)___leaf->core.keys[___leaf->index = 0]; ___leaf->index < ___leaf->core.size; ___node = (___type *)___leaf->core.keys[++___leaf->index])

@@ -1,7 +1,5 @@
-#include <database/blsm/common.h>
-#include <database/blsm/structures/bp_tree.h>
-#include <database/blsm/structures/hash_map.h>
-#include <database/blsm/memtable/memtable.h>
+#include <hash_map.h>
+#include <bp_tree.h>
 
 struct test_node
 {
@@ -29,6 +27,31 @@ static void node_print(struct bp_tree_node *node)
 {
     int first_value = ((struct test_node *)node)->value;
     printf(" %d ", first_value);
+}
+
+static int hash_node_hash(struct hash_map_node *node)
+{
+    int value = ((struct test_hash_node *)node)->value;
+    return value < 0 ? -value : value;
+}
+
+static int hash_node_cmp(struct hash_map_node *first, struct hash_map_node *second)
+{
+    int first_value = ((struct test_hash_node *)first)->value;
+    int second_value = ((struct test_hash_node *)second)->value;
+
+    if (first_value < second_value)
+    {
+        return -1;
+    }
+    else if (first_value > second_value)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 static int node_cmp(struct bp_tree_node *first, struct bp_tree_node *second)
@@ -109,28 +132,22 @@ static void assert_tree(struct bp_tree *tree)
     }
 }
 
-static int hash_node_hash(struct hash_map_node *node)
+int lookup_int_hash_map(struct hash_map *map, int val)
 {
-    int value = ((struct test_hash_node *)node)->value;
-    return value < 0 ? -value : value;
-}
+    struct test_hash_node *node = (struct test_hash_node *)malloc(sizeof(struct test_hash_node));
+    node->value = val;
 
-static int hash_node_cmp(struct hash_map_node *first, struct hash_map_node *second)
-{
-    int first_value = ((struct test_hash_node *)first)->value;
-    int second_value = ((struct test_hash_node *)second)->value;
+    struct hash_map_node *result = hash_map_lookup(map, &node->core);
+    free(node);
 
-    if (first_value < second_value)
+    if (result == NULL)
     {
         return -1;
     }
-    else if (first_value > second_value)
-    {
-        return 1;
-    }
     else
     {
-        return 0;
+        int res = ((struct test_hash_node *)result)->value;
+        return res;
     }
 }
 
@@ -169,25 +186,6 @@ int delete_int_hash_map(struct hash_map *map, int val)
     {
         int res = ((struct test_hash_node *)result)->value;
         free(result);
-        return res;
-    }
-}
-
-int find_int_hash_map(struct hash_map *map, int val)
-{
-    struct test_hash_node *node = (struct test_hash_node *)malloc(sizeof(struct test_hash_node));
-    node->value = val;
-
-    struct hash_map_node *result = hash_map_find(map, &node->core);
-    free(node);
-
-    if (result == NULL)
-    {
-        return -1;
-    }
-    else
-    {
-        int res = ((struct test_hash_node *)result)->value;
         return res;
     }
 }
@@ -256,7 +254,7 @@ int delete_int_bp_tree(struct bp_tree *tree, int val)
     }
 }
 
-int find_int_bp_tree(struct bp_tree *tree, int val)
+int lookup_int_bp_tree(struct bp_tree *tree, int val)
 {
     struct test_node *node = (struct test_node *)malloc(sizeof(struct test_node));
     node->value = val;
@@ -305,62 +303,61 @@ static void print_stat(struct bp_tree *tree)
 int bp_tree_test_1(void *unused)
 {
     struct bp_tree *tree = (struct bp_tree *)malloc(sizeof(struct bp_tree));
-
     bp_tree_init(tree, 4, node_cmp);
 
-    assert(-1 == find_int_bp_tree(tree, 1));
+    assert(-1 == lookup_int_bp_tree(tree, 1));
     insert_int_bp_tree(tree, 1);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(1 == find_int_bp_tree(tree, 1));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(1 == lookup_int_bp_tree(tree, 1));
 
-    assert(-1 == find_int_bp_tree(tree, 2));
+    assert(-1 == lookup_int_bp_tree(tree, 2));
     insert_int_bp_tree(tree, 2);
 
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(2 == find_int_bp_tree(tree, 2));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(2 == lookup_int_bp_tree(tree, 2));
 
-    assert(-1 == find_int_bp_tree(tree, 3));
+    assert(-1 == lookup_int_bp_tree(tree, 3));
     insert_int_bp_tree(tree, 3);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(3 == find_int_bp_tree(tree, 3));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(3 == lookup_int_bp_tree(tree, 3));
 
-    assert(-1 == find_int_bp_tree(tree, 4));
+    assert(-1 == lookup_int_bp_tree(tree, 4));
     insert_int_bp_tree(tree, 4);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(4 == find_int_bp_tree(tree, 4));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(4 == lookup_int_bp_tree(tree, 4));
 
-    assert(-1 == find_int_bp_tree(tree, 5));
+    assert(-1 == lookup_int_bp_tree(tree, 5));
     insert_int_bp_tree(tree, 5);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(5 == find_int_bp_tree(tree, 5));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(5 == lookup_int_bp_tree(tree, 5));
 
-    assert(-1 == find_int_bp_tree(tree, 6));
+    assert(-1 == lookup_int_bp_tree(tree, 6));
     insert_int_bp_tree(tree, 6);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(6 == find_int_bp_tree(tree, 6));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(6 == lookup_int_bp_tree(tree, 6));
 
-    assert(-1 == find_int_bp_tree(tree, 7));
+    assert(-1 == lookup_int_bp_tree(tree, 7));
     insert_int_bp_tree(tree, 7);
-    assert(-1 == find_int_bp_tree(tree, -5));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
 
-    assert(7 == find_int_bp_tree(tree, 7));
+    assert(7 == lookup_int_bp_tree(tree, 7));
 
-    assert(-1 == find_int_bp_tree(tree, 8));
+    assert(-1 == lookup_int_bp_tree(tree, 8));
     insert_int_bp_tree(tree, 8);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(8 == find_int_bp_tree(tree, 8));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(8 == lookup_int_bp_tree(tree, 8));
 
-    assert(-1 == find_int_bp_tree(tree, -2));
-    assert(1 == find_int_bp_tree(tree, 1));
-    assert(2 == find_int_bp_tree(tree, 2));
-    assert(3 == find_int_bp_tree(tree, 3));
-    assert(4 == find_int_bp_tree(tree, 4));
-    assert(5 == find_int_bp_tree(tree, 5));
-    assert(6 == find_int_bp_tree(tree, 6));
-    assert(7 == find_int_bp_tree(tree, 7));
-    assert(8 == find_int_bp_tree(tree, 8));
-    assert(-1 == find_int_bp_tree(tree, 9));
-    assert(-1 == find_int_bp_tree(tree, 10));
+    assert(-1 == lookup_int_bp_tree(tree, -2));
+    assert(1 == lookup_int_bp_tree(tree, 1));
+    assert(2 == lookup_int_bp_tree(tree, 2));
+    assert(3 == lookup_int_bp_tree(tree, 3));
+    assert(4 == lookup_int_bp_tree(tree, 4));
+    assert(5 == lookup_int_bp_tree(tree, 5));
+    assert(6 == lookup_int_bp_tree(tree, 6));
+    assert(7 == lookup_int_bp_tree(tree, 7));
+    assert(8 == lookup_int_bp_tree(tree, 8));
+    assert(-1 == lookup_int_bp_tree(tree, 9));
+    assert(-1 == lookup_int_bp_tree(tree, 10));
 
     print_stat(tree);
     bp_tree_free(tree, free_bp_tree_node);
@@ -371,60 +368,59 @@ int bp_tree_test_1(void *unused)
 int bp_tree_test_2(void *unused)
 {
     struct bp_tree *tree = (struct bp_tree *)malloc(sizeof(struct bp_tree));
-
     bp_tree_init(tree, 4, node_cmp);
 
-    assert(-1 == find_int_bp_tree(tree, 2));
+    assert(-1 == lookup_int_bp_tree(tree, 2));
     insert_int_bp_tree(tree, 2);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(2 == find_int_bp_tree(tree, 2));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(2 == lookup_int_bp_tree(tree, 2));
 
-    assert(-1 == find_int_bp_tree(tree, 1));
+    assert(-1 == lookup_int_bp_tree(tree, 1));
     insert_int_bp_tree(tree, 1);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(1 == find_int_bp_tree(tree, 1));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(1 == lookup_int_bp_tree(tree, 1));
 
-    assert(-1 == find_int_bp_tree(tree, 5));
+    assert(-1 == lookup_int_bp_tree(tree, 5));
     insert_int_bp_tree(tree, 5);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(5 == find_int_bp_tree(tree, 5));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(5 == lookup_int_bp_tree(tree, 5));
 
-    assert(-1 == find_int_bp_tree(tree, 4));
+    assert(-1 == lookup_int_bp_tree(tree, 4));
     insert_int_bp_tree(tree, 4);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(4 == find_int_bp_tree(tree, 4));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(4 == lookup_int_bp_tree(tree, 4));
 
-    assert(-1 == find_int_bp_tree(tree, 7));
+    assert(-1 == lookup_int_bp_tree(tree, 7));
     insert_int_bp_tree(tree, 7);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(7 == find_int_bp_tree(tree, 7));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(7 == lookup_int_bp_tree(tree, 7));
 
-    assert(-1 == find_int_bp_tree(tree, 8));
+    assert(-1 == lookup_int_bp_tree(tree, 8));
     insert_int_bp_tree(tree, 8);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(8 == find_int_bp_tree(tree, 8));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(8 == lookup_int_bp_tree(tree, 8));
 
-    assert(-1 == find_int_bp_tree(tree, 6));
+    assert(-1 == lookup_int_bp_tree(tree, 6));
     insert_int_bp_tree(tree, 6);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(6 == find_int_bp_tree(tree, 6));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(6 == lookup_int_bp_tree(tree, 6));
 
-    assert(-1 == find_int_bp_tree(tree, 3));
+    assert(-1 == lookup_int_bp_tree(tree, 3));
     insert_int_bp_tree(tree, 3);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(3 == find_int_bp_tree(tree, 3));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(3 == lookup_int_bp_tree(tree, 3));
 
-    assert(-1 == find_int_bp_tree(tree, -2));
-    assert(1 == find_int_bp_tree(tree, 1));
-    assert(2 == find_int_bp_tree(tree, 2));
-    assert(3 == find_int_bp_tree(tree, 3));
-    assert(4 == find_int_bp_tree(tree, 4));
-    assert(5 == find_int_bp_tree(tree, 5));
-    assert(6 == find_int_bp_tree(tree, 6));
-    assert(7 == find_int_bp_tree(tree, 7));
-    assert(8 == find_int_bp_tree(tree, 8));
-    assert(-1 == find_int_bp_tree(tree, 9));
-    assert(-1 == find_int_bp_tree(tree, 10));
+    assert(-1 == lookup_int_bp_tree(tree, -2));
+    assert(1 == lookup_int_bp_tree(tree, 1));
+    assert(2 == lookup_int_bp_tree(tree, 2));
+    assert(3 == lookup_int_bp_tree(tree, 3));
+    assert(4 == lookup_int_bp_tree(tree, 4));
+    assert(5 == lookup_int_bp_tree(tree, 5));
+    assert(6 == lookup_int_bp_tree(tree, 6));
+    assert(7 == lookup_int_bp_tree(tree, 7));
+    assert(8 == lookup_int_bp_tree(tree, 8));
+    assert(-1 == lookup_int_bp_tree(tree, 9));
+    assert(-1 == lookup_int_bp_tree(tree, 10));
 
     print_stat(tree);
     bp_tree_free(tree, free_bp_tree_node);
@@ -435,22 +431,21 @@ int bp_tree_test_2(void *unused)
 int bp_tree_test_3(void *unused)
 {
     struct bp_tree *tree = (struct bp_tree *)malloc(sizeof(struct bp_tree));
-
     bp_tree_init(tree, 4, node_cmp);
 
-    assert(-1 == find_int_bp_tree(tree, 2));
+    assert(-1 == lookup_int_bp_tree(tree, 2));
     insert_int_bp_tree(tree, 2);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(2 == find_int_bp_tree(tree, 2));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(2 == lookup_int_bp_tree(tree, 2));
 
-    assert(-1 == find_int_bp_tree(tree, 1));
+    assert(-1 == lookup_int_bp_tree(tree, 1));
     insert_int_bp_tree(tree, 1);
-    assert(-1 == find_int_bp_tree(tree, -5));
-    assert(1 == find_int_bp_tree(tree, 1));
+    assert(-1 == lookup_int_bp_tree(tree, -5));
+    assert(1 == lookup_int_bp_tree(tree, 1));
 
-    assert(-1 == find_int_bp_tree(tree, -2));
-    assert(1 == find_int_bp_tree(tree, 1));
-    assert(2 == find_int_bp_tree(tree, 2));
+    assert(-1 == lookup_int_bp_tree(tree, -2));
+    assert(1 == lookup_int_bp_tree(tree, 1));
+    assert(2 == lookup_int_bp_tree(tree, 2));
 
     print_stat(tree);
     bp_tree_free(tree, free_bp_tree_node);
@@ -461,7 +456,6 @@ int bp_tree_test_3(void *unused)
 int bp_tree_test_4(void *unused)
 {
     struct bp_tree *tree = (struct bp_tree *)malloc(sizeof(struct bp_tree));
-
     bp_tree_init(tree, 4, node_cmp);
 
     for (int i = 0; i < 100; i++)
@@ -478,7 +472,6 @@ int bp_tree_test_4(void *unused)
 int bp_tree_test_5(void *unused)
 {
     struct bp_tree *tree = (struct bp_tree *)malloc(sizeof(struct bp_tree));
-
     bp_tree_init(tree, 7, node_cmp);
 
     for (int i = 0; i < 100000; i++)
@@ -518,7 +511,6 @@ int bp_tree_test_6(void *unused)
 int bp_tree_test_7(void *unused)
 {
     struct bp_tree *tree = (struct bp_tree *)malloc(sizeof(struct bp_tree));
-
     bp_tree_init(tree, 4, node_cmp);
 
     insert_int_bp_tree(tree, 8);
@@ -592,10 +584,7 @@ int bp_tree_test_7(void *unused)
 int bp_tree_test_8(void *unused)
 {
     struct bp_tree *tree = (struct bp_tree *)malloc(sizeof(struct bp_tree));
-
     bp_tree_init(tree, 8, node_cmp);
-
-    printf("Test\n");
 
     for (int i = 0; i < 10000; i++)
     {
@@ -619,7 +608,6 @@ int bp_tree_test_8(void *unused)
 int bp_tree_test_9(void *unused)
 {
     struct bp_tree *tree = (struct bp_tree *)malloc(sizeof(struct bp_tree));
-
     bp_tree_init(tree, 5, node_cmp);
 
     insert_int_bp_tree(tree, 1);
@@ -663,8 +651,8 @@ int bp_tree_test_10(void *unused)
 
         if (op == 0)
         {
-            int bp_tree_result = find_int_bp_tree(tree, value);
-            int hash_map_result = find_int_hash_map(map, value);
+            int bp_tree_result = lookup_int_bp_tree(tree, value);
+            int hash_map_result = lookup_int_hash_map(map, value);
             assert(bp_tree_result == hash_map_result);
         }
         else if (op == 1)
@@ -693,6 +681,22 @@ int bp_tree_test_10(void *unused)
         }
     }
 
+    struct test_node *previous = NULL;
+    int index = 0;
+    bp_tree_for_each(tree, var, struct test_node)
+    {
+        index++;
+
+        if (previous != NULL)
+        {
+            assert(tree->comparator(&previous->core, &var->core) == -1);
+        }
+
+        previous = var;
+    }
+
+    assert(tree->size == index);
+
     for (int i = 0; i < m; i++)
     {
         int bp_tree_result = delete_int_bp_tree(tree, i);
@@ -718,71 +722,8 @@ int bp_tree_test_10(void *unused)
     return 0;
 }
 
-int hash_map_test_1(void *unused)
-{
-    struct hash_map *map = (struct hash_map *)malloc(sizeof(struct hash_map));
-    hash_map_init(map, hash_node_cmp, hash_node_hash);
-
-    assert(-1 == find_int_hash_map(map, 1));
-    insert_int_hash_map(map, 1);
-    assert(-1 == find_int_hash_map(map, -5));
-    assert(1 == find_int_hash_map(map, 1));
-
-    assert(-1 == find_int_hash_map(map, 2));
-    insert_int_hash_map(map, 2);
-    assert(-1 == find_int_hash_map(map, -5));
-    assert(2 == find_int_hash_map(map, 2));
-
-    assert(-1 == find_int_hash_map(map, 3));
-    insert_int_hash_map(map, 3);
-    assert(-1 == find_int_hash_map(map, -5));
-    assert(3 == find_int_hash_map(map, 3));
-
-    assert(-1 == find_int_hash_map(map, 4));
-    insert_int_hash_map(map, 4);
-    assert(-1 == find_int_hash_map(map, -5));
-    assert(4 == find_int_hash_map(map, 4));
-
-    assert(-1 == find_int_hash_map(map, 5));
-    insert_int_hash_map(map, 5);
-    assert(-1 == find_int_hash_map(map, -5));
-    assert(5 == find_int_hash_map(map, 5));
-
-    assert(-1 == find_int_hash_map(map, 6));
-    insert_int_hash_map(map, 6);
-    assert(-1 == find_int_hash_map(map, -5));
-    assert(6 == find_int_hash_map(map, 6));
-
-    assert(-1 == find_int_hash_map(map, 7));
-    insert_int_hash_map(map, 7);
-    assert(-1 == find_int_hash_map(map, -5));
-    assert(7 == find_int_hash_map(map, 7));
-
-    assert(-1 == find_int_hash_map(map, 8));
-    insert_int_hash_map(map, 8);
-    assert(-1 == find_int_hash_map(map, -5));
-    assert(8 == find_int_hash_map(map, 8));
-
-    assert(-1 == find_int_hash_map(map, -2));
-    assert(1 == find_int_hash_map(map, 1));
-    assert(2 == find_int_hash_map(map, 2));
-    assert(3 == find_int_hash_map(map, 3));
-    assert(4 == find_int_hash_map(map, 4));
-    assert(5 == find_int_hash_map(map, 5));
-    assert(6 == find_int_hash_map(map, 6));
-    assert(7 == find_int_hash_map(map, 7));
-    assert(8 == find_int_hash_map(map, 8));
-    assert(-1 == find_int_hash_map(map, 9));
-    assert(-1 == find_int_hash_map(map, 10));
-
-    free(map);
-    hash_map_free(map, free_hash_map_node);
-    return 0;
-}
-
 int main()
 {
-    run_test(hash_map_test_1, (void *)NULL);
     run_test(bp_tree_test_1, (void *)NULL);
     run_test(bp_tree_test_2, (void *)NULL);
     run_test(bp_tree_test_3, (void *)NULL);
@@ -793,4 +734,5 @@ int main()
     run_test(bp_tree_test_8, (void *)NULL);
     run_test(bp_tree_test_9, (void *)NULL);
     run_test(bp_tree_test_10, (void *)NULL);
+    return 0;
 }
